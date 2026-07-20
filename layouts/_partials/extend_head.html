@@ -1,0 +1,11 @@
+{{- /* Load KaTeX CSS only on pages/sites where math = true — official PaperMod pattern */ -}}
+{{ if or .Params.math .Site.Params.math }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<style>
+    .katex-display {
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.5em 0;
+    }
+</style>
+{{ end }}

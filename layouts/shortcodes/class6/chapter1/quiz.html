@@ -1,0 +1,105 @@
+{{ $id := .Ordinal }}
+<div class="space-y-6 text-slate-800" id="quiz-container-{{ $id }}">
+    <!-- Quiz Question 1 -->
+    <div class="quiz-question bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+        <h4 class="font-bold text-slate-800 mb-3 text-lg">Q1. What is the sum of the first 10 odd numbers?</h4>
+        <p class="text-sm text-slate-500 mb-4 font-mono">$1 + 3 + 5 + 7 + 9 + 11 + 13 + 15 + 17 + 19 = ?$</p>
+        <div class="flex gap-4 items-center">
+            <input type="number" id="quizAns1-{{ $id }}" placeholder="Enter number" class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 w-40">
+            <button id="quizBtn1-{{ $id }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl transition">Submit</button>
+        </div>
+        <div id="quizResult1-{{ $id }}" class="mt-4 text-sm font-semibold hidden"></div>
+    </div>
+
+    <!-- Quiz Question 2 -->
+    <div class="quiz-question bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+        <h4 class="font-bold text-slate-800 mb-3 text-lg">Q2. What is the value of adding numbers up to 100 and back down?</h4>
+        <p class="text-sm text-slate-500 mb-4 font-mono">$1 + 2 + \dots + 99 + 100 + 99 + \dots + 2 + 1 = ?$</p>
+        <div class="flex gap-4 items-center">
+            <input type="number" id="quizAns2-{{ $id }}" placeholder="Enter number" class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 w-40">
+            <button id="quizBtn2-{{ $id }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl transition">Submit</button>
+        </div>
+        <div id="quizResult2-{{ $id }}" class="mt-4 text-sm font-semibold hidden"></div>
+    </div>
+
+    <!-- Quiz Question 3 -->
+    <div class="quiz-question bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+        <h4 class="font-bold text-slate-800 mb-3 text-lg">Q3. What sequence do you get when you add consecutive triangular numbers: $T_n + T_{n-1}$?</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                <input type="radio" name="quiz3-{{ $id }}" value="odd" class="text-blue-600 focus:ring-blue-500">
+                <span class="text-slate-700 font-medium">Odd Numbers</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                <input type="radio" name="quiz3-{{ $id }}" value="squares" class="text-blue-600 focus:ring-blue-500">
+                <span class="text-slate-700 font-medium">Square Numbers</span>
+            </label>
+            <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50 transition">
+                <input type="radio" name="quiz3-{{ $id }}" value="powers" class="text-blue-600 focus:ring-blue-500">
+                <span class="text-slate-700 font-medium">Powers of 2</span>
+            </label>
+        </div>
+        <button id="quizBtn3-{{ $id }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl transition">Submit</button>
+        <div id="quizResult3-{{ $id }}" class="mt-4 text-sm font-semibold hidden"></div>
+    </div>
+
+    <!-- Quiz Question 4 -->
+    <div class="quiz-question bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+        <h4 class="font-bold text-slate-800 mb-3 text-lg">Q4. Multiply $T_5$ (the 5th triangular number, which is 15) by 6 and add 1. What number do you get?</h4>
+        <p class="text-sm text-slate-500 mb-4 font-mono">$15 \times 6 + 1 = ?$</p>
+        <div class="flex gap-4 items-center">
+            <input type="number" id="quizAns4-{{ $id }}" placeholder="Enter number" class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 w-40">
+            <button id="quizBtn4-{{ $id }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-xl transition">Submit</button>
+        </div>
+        <div id="quizResult4-{{ $id }}" class="mt-4 text-sm font-semibold hidden"></div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const id = "{{ $id }}";
+
+    function showResult(resEl, isCorrect, correctMsg, errorMsg) {
+        resEl.classList.remove('hidden', 'text-emerald-600', 'text-rose-600');
+        if (isCorrect) {
+            resEl.textContent = "✅ " + correctMsg;
+            resEl.classList.add('text-emerald-600', 'block');
+        } else {
+            resEl.textContent = "❌ " + errorMsg;
+            resEl.classList.add('text-rose-600', 'block');
+        }
+    }
+
+    // Q1
+    document.getElementById(`quizBtn1-${id}`).addEventListener('click', () => {
+        const val = document.getElementById(`quizAns1-${id}`).value.trim();
+        const resEl = document.getElementById(`quizResult1-${id}`);
+        showResult(resEl, val === "100", "Correct! The sum of the first n odd numbers is n^2. Here 10^2 = 100.", "Incorrect. Remember the rule: the sum of the first n odd numbers is n^2.");
+    });
+
+    // Q2
+    document.getElementById(`quizBtn2-${id}`).addEventListener('click', () => {
+        const val = document.getElementById(`quizAns2-${id}`).value.trim();
+        const resEl = document.getElementById(`quizResult2-${id}`);
+        showResult(resEl, val === "10000", "Correct! Adding up to n and back down gives n^2. So 100^2 = 10000.", "Incorrect. Think about the 'Up-and-Down Slices' relation (n^2).");
+    });
+
+    // Q3
+    document.getElementById(`quizBtn3-${id}`).addEventListener('click', () => {
+        const selected = document.querySelector(`input[name="quiz3-${id}"]:checked`);
+        const resEl = document.getElementById(`quizResult3-${id}`);
+        if (!selected) {
+            showResult(resEl, false, "", "Please select an answer first.");
+            return;
+        }
+        showResult(resEl, selected.value === "squares", "Correct! Two consecutive triangular numbers make a square number.", "Incorrect. Check out the 'Triangular Pairs' relation above.");
+    });
+
+    // Q4
+    document.getElementById(`quizBtn4-${id}`).addEventListener('click', () => {
+        const val = document.getElementById(`quizAns4-${id}`).value.trim();
+        const resEl = document.getElementById(`quizResult4-${id}`);
+        showResult(resEl, val === "91", "Correct! 15 * 6 + 1 = 91. Fun fact: 8 * T_n + 1 gives an odd square, and 6 * T_n + 1 gives a hexagonal number!", "Incorrect. Just do the math: 15 * 6 + 1.");
+    });
+})();
+</script>

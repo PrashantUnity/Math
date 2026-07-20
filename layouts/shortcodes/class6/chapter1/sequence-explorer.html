@@ -1,0 +1,389 @@
+{{ $id := .Ordinal }}
+<div class="interactive-card bg-slate-900 text-white rounded-2xl p-6 my-8 shadow-2xl border border-slate-700">
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Controls Column -->
+        <div class="w-full lg:w-1/3 flex flex-col justify-between space-y-6">
+            <div>
+                <label for="sequenceSelect-{{ $id }}" class="block text-sm font-semibold text-slate-300 uppercase tracking-wider mb-2">Select Number Sequence</label>
+                <select id="sequenceSelect-{{ $id }}" class="w-full bg-slate-800 text-white border border-slate-600 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                    <option value="ones">All 1's</option>
+                    <option value="counting">Counting Numbers</option>
+                    <option value="odd">Odd Numbers</option>
+                    <option value="even">Even Numbers</option>
+                    <option value="triangular" selected>Triangular Numbers</option>
+                    <option value="square">Square Numbers</option>
+                    <option value="cube">Cube Numbers (3D)</option>
+                    <option value="powers2">Powers of 2</option>
+                    <option value="powers3">Powers of 3</option>
+                    <option value="virahanka">Virahānka (Fibonacci)</option>
+                    <option value="hexagonal">Hexagonal Numbers</option>
+                </select>
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <label for="sequenceSlider-{{ $id }}" class="text-sm font-semibold text-slate-300 uppercase tracking-wider">Step (n)</label>
+                    <span id="sequenceStepVal-{{ $id }}" class="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold font-mono">3</span>
+                </div>
+                <input type="range" id="sequenceSlider-{{ $id }}" min="1" max="6" value="3" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                <div class="flex justify-between text-xs text-slate-400 font-mono mt-1">
+                    <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Mathematical Value</h4>
+                <div id="sequenceMathOutput-{{ $id }}" class="text-lg font-mono text-center text-blue-400 font-bold bg-slate-950 py-3 rounded-lg border border-slate-800">
+                </div>
+                <p id="sequenceDesc-{{ $id }}" class="text-xs text-slate-300 mt-3 leading-relaxed">
+                    Triangular numbers are formed by packing dots in equilateral triangles.
+                </p>
+            </div>
+        </div>
+
+        <!-- Canvas Display Column -->
+        <div class="w-full lg:w-2/3 flex flex-col items-center">
+            <div class="relative w-full bg-slate-950 rounded-2xl border border-slate-800 flex justify-center items-center p-4 overflow-hidden shadow-inner" style="min-height: 420px;">
+                <canvas id="sequenceCanvas-{{ $id }}" width="400" height="400" class="max-w-full h-auto"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Unique IDs for this instance
+    const id = "{{ $id }}";
+    const canvas = document.getElementById(`sequenceCanvas-${id}`);
+    const ctx = canvas.getContext('2d');
+    const select = document.getElementById(`sequenceSelect-${id}`);
+    const slider = document.getElementById(`sequenceSlider-${id}`);
+    const stepVal = document.getElementById(`sequenceStepVal-${id}`);
+    const mathOutput = document.getElementById(`sequenceMathOutput-${id}`);
+    const descOutput = document.getElementById(`sequenceDesc-${id}`);
+
+    // Constants & Helpers
+    const DOT_RADIUS = 7;
+    const PADDING = 22;
+
+    function drawDot(ctx, x, y, color) {
+        ctx.beginPath();
+        ctx.arc(x, y, DOT_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+    }
+
+    function drawLine(ctx, x1, y1, x2, y2, color, width = 2) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.stroke();
+    }
+
+    function drawIsometricCube(ctx, cx, cy, size, colTop, colLeft, colRight) {
+        const dx1 = size * Math.cos(Math.PI / 6);
+        const dy1 = size * Math.sin(Math.PI / 6);
+        const dx2 = size * Math.cos(5 * Math.PI / 6);
+        const dy2 = size * Math.sin(5 * Math.PI / 6);
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size);
+        ctx.lineTo(cx + dx1, cy - size + dy1);
+        ctx.lineTo(cx, cy + dy1 + dy2);
+        ctx.lineTo(cx + dx2, cy - size + dy2);
+        ctx.closePath();
+        ctx.fillStyle = colTop;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size);
+        ctx.lineTo(cx + dx2, cy - size + dy2);
+        ctx.lineTo(cx + dx2, cy + dy2);
+        ctx.lineTo(cx, cy);
+        ctx.closePath();
+        ctx.fillStyle = colLeft;
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - size);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx + dx1, cy + dy1);
+        ctx.lineTo(cx + dx1, cy - size + dy1);
+        ctx.closePath();
+        ctx.fillStyle = colRight;
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    const descriptions = {
+        ones: "All 1's: A simple sequence where every term is 1.",
+        counting: "Counting numbers: The natural numbers $1, 2, 3, \\dots$, representing size $n$.",
+        odd: "Odd numbers: Starts at 1 and increases by 2 each step. Formula: $2n - 1$.",
+        even: "Even numbers: Multiples of 2. Formula: $2n$.",
+        triangular: "Triangular numbers: Sum of consecutive integers. Can be stacked into triangles. Formula: $T_n = \\frac{n(n+1)}{2}$.",
+        square: "Square numbers: Multiplied by itself. Forms square grids. Formula: $n^2$.",
+        cube: "Cube numbers: Raised to the power of 3. Forms solid 3D cubes. Formula: $n^3$.",
+        powers2: "Powers of 2: Doubling each step ($1, 2, 4, 8, \\dots$). Forms point, line, square, cube, hypercube. Formula: $2^{n-1}$.",
+        powers3: "Powers of 3: Tripling each step ($1, 3, 9, 27, \\dots$). Represented as nested grids/structures. Formula: $3^{n-1}$.",
+        virahanka: "Virahānka (Fibonacci): Each number is the sum of the previous two ($1, 2, 3, 5, 8, 13, \\dots$). Historically studied in Indian prosody.",
+        hexagonal: "Hexagonal numbers: Numbers that form concentric hexagons. Formula: $H_n = n(2n-1)$."
+    };
+
+    function drawSequencePlot() {
+        const n = parseInt(slider.value);
+        stepVal.innerText = n;
+        const type = select.value;
+        
+        descOutput.innerText = descriptions[type];
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const w = canvas.width;
+        const h = canvas.height;
+
+        if (type === 'ones') {
+            mathOutput.innerHTML = `\\( a_{${n}} = 1 \\)`;
+            const startX = (w - (n - 1) * PADDING) / 2;
+            for (let i = 0; i < n; i++) {
+                drawDot(ctx, startX + i * PADDING, h / 2, '#38BDF8');
+            }
+        } 
+        else if (type === 'counting') {
+            mathOutput.innerHTML = `\\( c_{${n}} = ${n} \\)`;
+            const startX = (w - (n - 1) * PADDING) / 2;
+            for (let i = 0; i < n; i++) {
+                drawDot(ctx, startX + i * PADDING, h / 2, '#F43F5E');
+            }
+        } 
+        else if (type === 'odd') {
+            const val = 2 * n - 1;
+            mathOutput.innerHTML = `\\( o_{${n}} = 2(${n}) - 1 = ${val} \\)`;
+            const startX = (w - (val - 1) * 16) / 2;
+            for (let i = 0; i < val; i++) {
+                drawDot(ctx, startX + i * 16, h / 2, '#F59E0B');
+            }
+        } 
+        else if (type === 'even') {
+            const val = 2 * n;
+            mathOutput.innerHTML = `\\( e_{${n}} = 2(${n}) = ${val} \\)`;
+            const startX = (w - (val - 1) * 16) / 2;
+            for (let i = 0; i < val; i++) {
+                drawDot(ctx, startX + i * 16, h / 2, '#10B981');
+            }
+        } 
+        else if (type === 'triangular') {
+            const val = (n * (n + 1)) / 2;
+            mathOutput.innerHTML = `\\( T_{${n}} = \\frac{${n}(${n}+1)}{2} = ${val} \\)`;
+            
+            const rowH = PADDING * 0.866;
+            const startY = (h - (n - 1) * rowH) / 2;
+            for (let row = 1; row <= n; row++) {
+                const startX = (w - (row - 1) * PADDING) / 2;
+                for (let col = 0; col < row; col++) {
+                    drawDot(ctx, startX + col * PADDING, startY + (row - 1) * rowH, '#EC4899');
+                }
+            }
+        } 
+        else if (type === 'square') {
+            const val = n * n;
+            mathOutput.innerHTML = `\\( S_{${n}} = ${n}^2 = ${val} \\)`;
+            const startX = (w - (n - 1) * PADDING) / 2;
+            const startY = (h - (n - 1) * PADDING) / 2;
+            for (let r = 0; r < n; r++) {
+                for (let c = 0; c < n; c++) {
+                    drawDot(ctx, startX + c * PADDING, startY + r * PADDING, '#06B6D4');
+                }
+            }
+        } 
+        else if (type === 'cube') {
+            const val = n * n * n;
+            mathOutput.innerHTML = `\\( C_{${n}} = ${n}^3 = ${val} \\)`;
+            
+            const cubeSize = Math.min(22, 120 / n);
+            const cx = w / 2;
+            const cy = h / 2 + (n - 1) * cubeSize * 0.25;
+
+            for (let z = 0; z < n; z++) {
+                for (let y = n - 1; y >= 0; y--) {
+                    for (let x = 0; x < n; x++) {
+                        const isoX = cx + (x - y) * cubeSize * Math.cos(Math.PI / 6);
+                        const isoY = cy + (x + y) * cubeSize * Math.sin(Math.PI / 6) - z * cubeSize;
+                        drawIsometricCube(ctx, isoX, isoY, cubeSize, '#3B82F6', '#1D4ED8', '#1E40AF');
+                    }
+                }
+            }
+        } 
+        else if (type === 'powers2') {
+            const val = Math.pow(2, n - 1);
+            mathOutput.innerHTML = `\\( 2^{${n}-1} = ${val} \\)`;
+            if (n === 1) {
+                drawDot(ctx, w / 2, h / 2, '#A855F7');
+            } else if (n === 2) {
+                drawLine(ctx, w/2 - 50, h/2, w/2 + 50, h/2, '#A855F7', 3);
+                drawDot(ctx, w/2 - 50, h/2, '#ffffff');
+                drawDot(ctx, w/2 + 50, h/2, '#ffffff');
+            } else if (n === 3) {
+                ctx.strokeStyle = '#A855F7';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(w/2 - 40, h/2 - 40, 80, 80);
+                drawDot(ctx, w/2 - 40, h/2 - 40, '#ffffff');
+                drawDot(ctx, w/2 + 40, h/2 - 40, '#ffffff');
+                drawDot(ctx, w/2 + 40, h/2 + 40, '#ffffff');
+                drawDot(ctx, w/2 - 40, h/2 + 40, '#ffffff');
+            } else if (n === 4) {
+                const sz = 40;
+                const offset = 20;
+                ctx.strokeStyle = 'rgba(168,85,247,0.5)';
+                ctx.strokeRect(w/2 - sz + offset, h/2 - sz - offset, sz*2, sz*2);
+                drawLine(ctx, w/2 - sz, h/2 - sz, w/2 - sz + offset, h/2 - sz - offset, '#A855F7', 2);
+                drawLine(ctx, w/2 + sz, h/2 - sz, w/2 + sz + offset, h/2 - sz - offset, '#A855F7', 2);
+                drawLine(ctx, w/2 - sz, h/2 + sz, w/2 - sz + offset, h/2 + sz - offset, '#A855F7', 2);
+                drawLine(ctx, w/2 + sz, h/2 + sz, w/2 + sz + offset, h/2 + sz - offset, '#A855F7', 2);
+                ctx.strokeStyle = '#A855F7';
+                ctx.strokeRect(w/2 - sz, h/2 - sz, sz*2, sz*2);
+                
+                drawDot(ctx, w/2 - sz, h/2 - sz, '#ffffff');
+                drawDot(ctx, w/2 + sz, h/2 - sz, '#ffffff');
+                drawDot(ctx, w/2 - sz, h/2 + sz, '#ffffff');
+                drawDot(ctx, w/2 + sz, h/2 + sz, '#ffffff');
+                drawDot(ctx, w/2 - sz + offset, h/2 - sz - offset, '#ffffff');
+                drawDot(ctx, w/2 + sz + offset, h/2 - sz - offset, '#ffffff');
+                drawDot(ctx, w/2 - sz + offset, h/2 + sz - offset, '#ffffff');
+                drawDot(ctx, w/2 + sz + offset, h/2 + sz - offset, '#ffffff');
+            } else {
+                ctx.fillStyle = 'rgba(168,85,247,0.1)';
+                ctx.fillRect(0, 0, w, h);
+                const size = 30;
+                for (let i = 0; i < 4; i++) {
+                    const cx = w/2 - 40 + i * 25;
+                    const cy = h/2 - 40 + i * 15;
+                    ctx.strokeStyle = `rgba(168,85,247, ${0.3 + i*0.2})`;
+                    ctx.strokeRect(cx, cy, size*2, size*2);
+                    drawDot(ctx, cx, cy, '#A855F7');
+                    drawDot(ctx, cx + size*2, cy, '#A855F7');
+                    drawDot(ctx, cx, cy + size*2, '#A855F7');
+                    drawDot(ctx, cx + size*2, cy + size*2, '#A855F7');
+                }
+            }
+        } 
+        else if (type === 'powers3') {
+            const val = Math.pow(3, n - 1);
+            mathOutput.innerHTML = `\\( 3^{${n}-1} = ${val} \\)`;
+            const startSize = 90;
+            const drawGrid = (cx, cy, size, depth) => {
+                if (depth === 1) {
+                    drawDot(ctx, cx, cy, '#F43F5E');
+                    return;
+                }
+                const offset = size / 3;
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        if (depth > 2 && dx === 0 && dy === 0) continue;
+                        drawGrid(cx + dx * offset, cy + dy * offset, offset, depth - 1);
+                    }
+                }
+            };
+            drawGrid(w/2, h/2, startSize * 1.5, n > 4 ? 4 : n);
+        } 
+        else if (type === 'virahanka') {
+            const fib = [1, 2, 3, 5, 8, 13, 21, 34];
+            const val = fib[n - 1];
+            mathOutput.innerHTML = `\\( V_{${n}} = ${val} \\)`;
+            let currentX = w / 2;
+            let currentY = h / 2;
+            let scale = 120 / fib[n-1];
+            let dir = 0;
+
+            for (let i = 0; i < n; i++) {
+                const f = fib[i];
+                const sz = f * scale;
+                ctx.strokeStyle = '#10B981';
+                ctx.lineWidth = 2;
+                
+                let sqX = currentX;
+                let sqY = currentY;
+                if (dir === 0) {
+                    sqY -= sz;
+                } else if (dir === 1) {
+                } else if (dir === 2) {
+                    sqX -= sz;
+                } else if (dir === 3) {
+                    sqX -= sz;
+                    sqY -= sz;
+                }
+                ctx.strokeRect(sqX, sqY, sz, sz);
+                ctx.fillStyle = 'rgba(16,185,129,0.05)';
+                ctx.fillRect(sqX, sqY, sz, sz);
+                
+                ctx.beginPath();
+                if (dir === 0) {
+                    ctx.arc(currentX, currentY, sz, Math.PI, 1.5 * Math.PI);
+                    currentX += sz;
+                    dir = 1;
+                } else if (dir === 1) {
+                    ctx.arc(currentX, currentY, sz, 1.5 * Math.PI, 0);
+                    currentY += sz;
+                    dir = 2;
+                } else if (dir === 2) {
+                    ctx.arc(currentX, currentY, sz, 0, 0.5 * Math.PI);
+                    currentX -= sz;
+                    dir = 3;
+                } else if (dir === 3) {
+                    ctx.arc(currentX, currentY, sz, 0.5 * Math.PI, Math.PI);
+                    currentY -= sz;
+                    dir = 0;
+                }
+                ctx.strokeStyle = '#EF4444';
+                ctx.stroke();
+            }
+        } 
+        else if (type === 'hexagonal') {
+            const val = n * (2 * n - 1);
+            mathOutput.innerHTML = `\\( H_{${n}} = ${n}(2(${n})-1) = ${val} \\)`;
+            
+            const cx = w / 2;
+            const cy = h / 2;
+            drawDot(ctx, cx, cy, '#F59E0B');
+            
+            for (let ring = 2; ring <= n; ring++) {
+                const rRadius = (ring - 1) * PADDING;
+                for (let side = 0; side < 6; side++) {
+                    const angle1 = (side * Math.PI) / 3;
+                    const angle2 = ((side + 1) * Math.PI) / 3;
+                    
+                    const x1 = cx + rRadius * Math.cos(angle1);
+                    const y1 = cy + rRadius * Math.sin(angle1);
+                    const x2 = cx + rRadius * Math.cos(angle2);
+                    const y2 = cy + rRadius * Math.sin(angle2);
+
+                    const dotsOnSide = ring - 1;
+                    for (let step = 0; step < dotsOnSide; step++) {
+                        const t = step / dotsOnSide;
+                        const px = x1 * (1 - t) + x2 * t;
+                        const py = y1 * (1 - t) + y2 * t;
+                        drawDot(ctx, px, py, '#EF4444');
+                    }
+                }
+            }
+        }
+        
+        if (typeof renderMathInElement === 'function') {
+            renderMathInElement(mathOutput);
+        }
+    }
+
+    select.addEventListener('change', drawSequencePlot);
+    slider.addEventListener('input', drawSequencePlot);
+
+    // Initial Trigger
+    window.addEventListener('DOMContentLoaded', drawSequencePlot);
+})();
+</script>
